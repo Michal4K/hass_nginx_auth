@@ -1,0 +1,61 @@
+<img id="cookieSet" src="" style="display:none;">
+<script>
+const queryString = window.location.search;
+const hass_endpoint = "<has_endpoint>";
+const urlParams = new URLSearchParams(queryString);
+const original_URI = urlParams.get('X-Original-URI');
+const original_HOST = urlParams.get('X-Original-HOST');
+var auth_token = urlParams.get('auth_token');
+var code = urlParams.get('code');
+
+var hassTokens = localStorage.getItem('hassTokens');
+var localToken = localStorage.getItem("token"+original_HOST);
+if (localToken != null) {
+    setCookieAndRedirect(localToken);
+} else if(hassTokens != null) {
+    auth_token = JSON.parse(hassTokens).access_token;
+    auth();
+} else if(auth_token != null) {
+    auth()
+} else if(code != null) {
+    console.log(auth_token);
+
+    let data = "grant_type=authorization_code&code="+code+"&client_id="+encodeURIComponent("https://"+original_HOST);
+    fetch('https://'+hass_endpoint+'/auth/token', {
+        method: "POST",
+        body: data,
+        headers: {"Content-type": "application/x-www-form-urlencoded; charset=UTF-8"}
+    })
+    .then(response => response.json())
+    .then(json => window.location="https://"+hass_endpoint+"/nginx_auth/get_access_token?X-Original-URI="+original_URI+"&X-Original-HOST="+original_HOST+"&auth_token="+json.access_token)
+    .catch(err => console.log(err));
+} else {
+    window.location.href = "https://"+hass_endpoint+"/auth/authorize?client_id="+encodeURIComponent("https://"+original_HOST)+"&redirect_uri="+encodeURIComponent("https://"+original_HOST+"/nginx_auth/get_access_token?X-Original-URI="+original_URI+"&X-Original-HOST="+original_HOST);
+}
+
+
+function auth() {
+    console.log(auth_token);
+
+    let data = {
+        "auth_token": auth_token
+    }
+
+    fetch('https://'+hass_endpoint+'/nginx_auth/auth', {
+        method: "POST",
+        body: JSON.stringify(data),
+    })
+    .then(response => response.json())
+    .then(json => setCookieAndRedirect(json.token))
+    .catch(err => console.log(err));
+}
+
+function setCookieAndRedirect(token) {
+    console.log(token);
+    document.getElementById("cookieSet").src = "https://"+original_HOST+"/set_auth_cookie?auth_token="+token;
+    localStorage.setItem("token"+original_HOST, token);
+    setTimeout(function() {
+        window.location.href = original_URI;
+    }, 1000);
+}
+</script>

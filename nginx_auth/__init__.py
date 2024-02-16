@@ -62,9 +62,11 @@ class AuthTokenValidation(HomeAssistantView):
         _LOGGER.debug(f"{origin_url}")
         parsed_url = urlparse(origin_url)
         token = request.cookies.get('auth_token')
-        if(token == None): token = ""
+        _LOGGER.debug("token type:" + str(type(token)))
+        if(token is None):
+            return self.json({"status": "UNAUTHORIZED"}, status_code=HTTPStatus.UNAUTHORIZED)
         _LOGGER.debug(f"token: {token}")
-        await self.hass.auth.async_validate_access_token(token)
+        is_auth = self.hass.auth.async_validate_access_token(token)
         try:
             user = self.tokens.get(token, "None")
             authoriezed_user = self.users[(self.service.index(parsed_url.netloc))]
@@ -80,9 +82,8 @@ class AuthTokenValidation(HomeAssistantView):
     async def post(self, request):
         token = (await request.json())["auth_token"]
         _LOGGER.debug(f"token: {token}")
-        await self.hass.auth.async_validate_access_token(token)
         try:
-            is_auth = await self.hass.auth.async_validate_access_token(token)
+            is_auth = self.hass.auth.async_validate_access_token(token)
             _LOGGER.debug(f"auth: {is_auth}")
             user = is_auth.user.name
             if(is_auth != None):

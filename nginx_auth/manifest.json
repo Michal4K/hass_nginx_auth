@@ -4,7 +4,7 @@
     "documentation": "https://example.com/my_auth/docs",
     "dependencies": ["http"],
     "codeowners": ["@michal4k"],
-    "version": "0.1.0",
+    "version": "0.1.1",
     "config_flow": false
 }
 
